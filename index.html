@@ -180,7 +180,7 @@
         const FETCH_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
 
         // Cargar API_URL desde LocalStorage o usar default
-        let API_URL = localStorage.getItem('mongo_api_url') || 'http://localhost:3001';
+        let API_URL = localStorage.getItem('mongo_api_url') || 'https://irritable-royal-change.ngrok-free.dev';
         document.getElementById('api-url-input').value = API_URL;
 
         function toggleSettings() {
