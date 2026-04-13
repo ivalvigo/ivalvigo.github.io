@@ -7,7 +7,7 @@ app.use(cors());
 
 // AJUSTE DE PUERTOS PARA EL PUNTO 2 (FRAGMENTACIÓN)
 const nodes = [
-  { name: 'Computadora A (Tuya - Casa)', ip: '100.88.20.92', port: 27018, id: 'A' },
+  { name: 'Computadora A (Local - Servidor)', ip: '127.0.0.1', port: 27018, id: 'A' },
   { name: 'Computadora B (Amigo - Escuela)', ip: '100.77.242.36', port: 27018, id: 'B' }
 ];
 
