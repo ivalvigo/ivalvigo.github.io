@@ -87,10 +87,30 @@
 
 <body class="p-8">
     <div class="max-w-6xl mx-auto">
-        <header class="mb-12 text-center">
+        <header class="mb-12 text-center relative">
+            <div class="absolute right-0 top-0">
+                <button onclick="toggleSettings()" class="glass p-3 hover:bg-white/10 transition-colors rounded-full" title="Configuración de API">
+                    <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+            
             <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
                 Sistema de Datos Distribuido</h1>
             <p class="text-slate-400 mt-2">Monitoreo Distribuido Seguro (A: 100.88.20.92 / B: 100.77.242.36)</p>
+            
+            <!-- Settings Panel -->
+            <div id="settings-panel" class="hidden mt-6 p-6 glass border-blue-500/30 text-left max-w-md mx-auto animate-in fade-in zoom-in duration-300">
+                <label class="block text-sm font-semibold text-slate-300 mb-2">URL del Servidor API (Backend)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="api-url-input" placeholder="http://localhost:3001" 
+                        class="bg-black/40 border border-white/10 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500 text-blue-400 font-mono text-sm">
+                    <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-bold text-sm transition-colors">Guardar</button>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2 italic">Ejemplo: http://localhost:3001 o la URL de LocalTunnel/Ngrok.</p>
+            </div>
         </header>
 
         <!-- Dynamic Alert for Offline Nodes -->
@@ -156,7 +176,25 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3001';
+        // Cargar API_URL desde LocalStorage o usar default
+        let API_URL = localStorage.getItem('mongo_api_url') || 'http://localhost:3001';
+        document.getElementById('api-url-input').value = API_URL;
+
+        function toggleSettings() {
+            const panel = document.getElementById('settings-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        function saveSettings() {
+            const input = document.getElementById('api-url-input').value.trim();
+            if (input) {
+                API_URL = input.endsWith('/') ? input.slice(0, -1) : input;
+                localStorage.setItem('mongo_api_url', API_URL);
+                toggleSettings();
+                updateStatus(); // Forzar actualización inmediata
+                alert('Configuración guardada. Intentando conectar...');
+            }
+        }
 
         async function updateStatus() {
             try {
@@ -198,7 +236,12 @@
                 }
 
             } catch (err) {
-                console.error("Monitor local deshabilitado");
+                console.error("Fallo de conexión con el backend:", API_URL);
+                // Si falla, mostramos un error visual en los labels
+                ['A', 'B'].forEach(id => {
+                   document.getElementById(`label-${id}`).innerText = "ERROR API";
+                   document.getElementById(`label-${id}`).className = "text-[10px] font-bold text-red-400";
+                });
             }
         }
 
@@ -214,13 +257,17 @@
                     resultsBox.innerHTML = `<span class="text-red-500 font-bold">${data.message}</span>`;
                 }
             } catch (err) {
-                resultsBox.innerHTML = `<span class="text-red-500 font-bold">FALLO TOTAL DE CONEXIÓN: El servicio de monitoreo local está caído.</span>`;
+                resultsBox.innerHTML = `<span class="text-red-500 font-bold text-center block">
+                    FALLO DE CONEXIÓN<br>
+                    <span class="text-xs font-normal text-slate-400">Asegúrate de que 'node server.js' esté corriendo en: ${API_URL}</span>
+                </span>`;
             }
         }
 
         setInterval(updateStatus, 3000);
         updateStatus();
     </script>
+
 </body>
 
 </html>
