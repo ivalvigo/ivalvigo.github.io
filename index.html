@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Datos Distribuidos MongoDB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+        }
+
+        .node-card {
+            transition: all 0.3s ease;
+        }
+
+        .node-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .status-pulse {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .online-pulse {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .offline-pulse {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 24px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        #alert-box {
+            display: none;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+
+<body class="p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                Sistema de Datos Distribuido</h1>
+            <p class="text-slate-400 mt-2">Monitoreo Distribuido Seguro (A: 100.88.20.92 / B: 100.77.242.36)</p>
+        </header>
+
+        <!-- Dynamic Alert for Offline Nodes -->
+        <div id="alert-box" class="p-5 glass border-red-500/50 bg-red-500/10 text-red-400 animate-bounce">
+            <div class="flex items-center">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+                <div id="alert-text" class="font-bold uppercase tracking-widest text-sm"></div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Node A (This) -->
+            <div id="card-A" class="glass node-card p-8 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4">
+                    <span id="label-A"
+                        class="text-xs font-bold uppercase tracking-widest px-2 py-1 glass rounded text-slate-400">CARGANDO...</span>
+                </div>
+                <h2 class="text-2xl font-bold mb-4">Computadora A</h2>
+                <div class="space-y-2 mb-6 text-slate-300">
+                    <p>IP Tailscale: <span class="text-blue-400">100.88.20.92</span></p>
+                    <p>Rol: <span class="text-indigo-400">Master / Nodo Primario</span></p>
+                    <p>Replica Set: <span id="replset-A" class="text-emerald-400">Wait...</span></p>
+                    <p id="info-A" class="text-sm opacity-50">Esperando conexión...</p>
+                </div>
+                <button onclick="queryNode('A')" class="glass-btn w-full">Consultar Datos Locales (A)</button>
+            </div>
+
+            <!-- Node B (Remote) -->
+            <div id="card-B" class="glass node-card p-8 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4">
+                    <span id="label-B"
+                        class="text-xs font-bold uppercase tracking-widest px-2 py-1 glass rounded text-slate-400">CARGANDO...</span>
+                </div>
+                <h2 class="text-2xl font-bold mb-4">Computadora B</h2>
+                <div class="space-y-2 mb-6 text-slate-300">
+                    <p>IP Tailscale: <span class="text-blue-400">100.77.242.36</span></p>
+                    <p>Rol: <span class="text-indigo-400">Slave / Nodo Secundario</span></p>
+                    <p>Replica Set: <span id="replset-B" class="text-emerald-400">Wait...</span></p>
+                    <p id="info-B" class="text-sm opacity-50">Esperando conexión...</p>
+                </div>
+                <button onclick="queryNode('B')" class="glass-btn w-full">Consultar Datos Remotos (B)</button>
+            </div>
+        </div>
+
+        <div class="mt-8 glass p-6">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4">
+                    </path>
+                </svg>
+                Resultados de Consulta
+            </h3>
+            <div id="query-results"
+                class="bg-black/30 p-4 rounded-xl min-h-[100px] font-mono text-sm text-blue-300 overflow-x-auto whitespace-pre-wrap">
+                Pulsa un botón para realizar una consulta distribuida...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001';
+
+        async function updateStatus() {
+            try {
+                const res = await fetch(`${API_URL}/status`);
+                const data = await res.json();
+                let someoneDown = false;
+                let downNodeNames = [];
+
+                data.forEach(node => {
+                    const label = document.getElementById(`label-${node.id}`);
+                    const repl = document.getElementById(`replset-${node.id}`);
+                    const info = document.getElementById(`info-${node.id}`);
+                    const card = document.getElementById(`card-${node.id}`);
+
+                    if (node.online) {
+                        label.innerHTML = `<span class="status-pulse online-pulse"></span> ONLINE`;
+                        label.className = "text-xs font-bold uppercase tracking-widest px-2 py-1 glass rounded text-emerald-400 flex items-center";
+                        repl.innerText = node.replSet;
+                        info.innerText = `Versión: ${node.version} | Optime: ${node.optime ? node.optime.ts : 'Ready'}`;
+                        card.style.opacity = "1";
+                    } else {
+                        label.innerHTML = `<span class="status-pulse offline-pulse"></span> OFFLINE`;
+                        label.className = "text-xs font-bold uppercase tracking-widest px-2 py-1 glass rounded text-red-500 flex items-center";
+                        repl.innerText = "DESCONECTADO";
+                        info.innerText = "ATENCIÓN: Nodo fuera de servicio o red deshabilitada.";
+                        card.style.opacity = "0.7";
+                        someoneDown = true;
+                        downNodeNames.push(`Computadora ${node.id}`);
+                    }
+                });
+
+                const alertBox = document.getElementById('alert-box');
+                const alertText = document.getElementById('alert-text');
+                if (someoneDown) {
+                    alertBox.style.display = "block";
+                    alertText.innerText = `¡ERROR DE SISTEMA DISTRIBUIDO!: ${downNodeNames.join(' y ')} se encuentran FUERA DE SERVICIO.`;
+                } else {
+                    alertBox.style.display = "none";
+                }
+
+            } catch (err) {
+                console.error("Monitor local deshabilitado");
+            }
+        }
+
+        async function queryNode(id) {
+            const resultsBox = document.getElementById('query-results');
+            resultsBox.innerText = `Consultando nodo ${id}...`;
+            try {
+                const res = await fetch(`${API_URL}/query/${id}`);
+                const data = await res.json();
+                if (data.success) {
+                    resultsBox.innerText = `Consultado con éxito en ${data.node}:\n\n` + JSON.stringify(data.data, null, 2);
+                } else {
+                    resultsBox.innerHTML = `<span class="text-red-500 font-bold">${data.message}</span>`;
+                }
+            } catch (err) {
+                resultsBox.innerHTML = `<span class="text-red-500 font-bold">FALLO TOTAL DE CONEXIÓN: El servicio de monitoreo local está caído.</span>`;
+            }
+        }
+
+        setInterval(updateStatus, 3000);
+        updateStatus();
+    </script>
+</body>
+
+</html>
