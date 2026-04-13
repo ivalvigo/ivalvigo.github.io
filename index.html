@@ -176,6 +176,9 @@
     </div>
 
     <script>
+        // Headers necesarios para Ngrok (evitar página de advertencia)
+        const FETCH_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
+
         // Cargar API_URL desde LocalStorage o usar default
         let API_URL = localStorage.getItem('mongo_api_url') || 'http://localhost:3001';
         document.getElementById('api-url-input').value = API_URL;
@@ -198,7 +201,7 @@
 
         async function updateStatus() {
             try {
-                const res = await fetch(`${API_URL}/status`);
+                const res = await fetch(`${API_URL}/status`, { headers: FETCH_HEADERS });
                 const data = await res.json();
                 let someoneDown = false;
                 let downNodeNames = [];
@@ -249,7 +252,7 @@
             const resultsBox = document.getElementById('query-results');
             resultsBox.innerText = `Consultando nodo ${id}...`;
             try {
-                const res = await fetch(`${API_URL}/query/${id}`);
+                const res = await fetch(`${API_URL}/query/${id}`, { headers: FETCH_HEADERS });
                 const data = await res.json();
                 if (data.success) {
                     resultsBox.innerText = `Consultado con éxito en ${data.node}:\n\n` + JSON.stringify(data.data, null, 2);
